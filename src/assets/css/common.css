@@ -1,0 +1,89 @@
+mt50 {
+  margin-top: 10px;
+}
+.innerCont {
+    width : 800px;
+    height : 800px;
+    margin: 0 auto;
+    border: 1px solid black;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 20px;
+}
+.innerCont .imgArea {
+    align-items: center;
+    height: 450px;
+}
+
+.innerCont .imgArea .imgBox {
+    width : 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.innerCont .imgBox.ReactCrop {
+}
+
+.innerCont .imgArea .btnBox {
+    width : 100%;
+}
+
+.innerCont .imgArea .imgBox .ReactCrop__image {
+    width: 100%;
+    height: 100%;
+}
+
+.innerCont .optionArea {
+    width: 100%;
+    height: 300px;
+}
+
+.innerCont .optionArea .tagBox {
+    margin-top: 40px;
+    width : 100%;
+    height: 290px;
+    position: relative;
+    border: 1px solid black;
+}
+
+.innerCont .btnBox {
+    float: right;
+    width : 10%;
+    border: 1px solid black;
+}
+
+.btnBox button {
+    width: 100%;
+}
+
+.imgBox .tagItem {
+    position: absolute;
+    z-index: 100;
+    line-height: 15px;
+    height:15px;
+    background-color: #61dafb;
+}
+
+.tagBox .tagItem {
+
+}
+
+.popArea {
+    width: 800px;
+    height: 300px;
+    position: absolute;
+    background-color: #282c34;
+}
+
+.popCont {
+    width: 100%;
+    height: 180px;
+}
+.popCont input {
+    width: 100%;
+    height: 40px;
+}
+
+.popArea .btnBox button{
+    height: 40px;
+}
