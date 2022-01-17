@@ -1,6 +1,5 @@
 import AddComponent from "../../component/add/AddComponent";
 import {useEffect, useState} from "react";
-import TagComponent from "../../component/tag/TagComponent";
 import PopupComponent from "../../component/tag/PopupComponent";
 
 export default function AddContainer() {
@@ -72,7 +71,12 @@ export default function AddContainer() {
         };
         if (cropBoxEle) {
             cropBoxEle.addEventListener('dblclick', clickHandle);
-            return () => cropBoxEle.removeEventListener('dblclick', clickHandle);
+            cropBoxEle.addEventListener('touchstart', clickHandle);
+            return () => {
+                cropBoxEle.removeEventListener('dblclick', clickHandle);
+                cropBoxEle.removeEventListener('touchstart', clickHandle);
+            }
+
         }
     });
 
