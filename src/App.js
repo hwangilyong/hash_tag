@@ -7,7 +7,7 @@ export default function App() {
   return (
       <BrowserRouter>
           <Routes>
-            <Route exact={true} path='/main' element={<AddContainer />}/>
+            <Route exact={true} path='/' element={<AddContainer />}/>
           </Routes>
       </BrowserRouter>
   );
