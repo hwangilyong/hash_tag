@@ -5,10 +5,10 @@ export default function PopupComponent ({active, onTxtChange, onCancel, onSubmit
             <div className='popArea'>
                 <div className='popCont'>
                     <input type='text' onChange={onTxtChange}/>
-                </div>
-                <div className='btnBox'>
-                    <button onClick={onCancel}>취소</button>
-                    <button onClick={onSubmit}>확인</button>
+                    <div className='btnBox'>
+                        <button onClick={onCancel}>취소</button>
+                        <button onClick={onSubmit}>확인</button>
+                    </div>
                 </div>
             </div>
         </>

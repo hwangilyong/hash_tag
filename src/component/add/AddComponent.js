@@ -23,9 +23,9 @@ export default function AddComponent({crop, img, onCropChange, onImgChange, tagL
                     })}
                 </div>
             </div>
-            <div className='btnBox'>
+           {/* <div className='btnBox'>
                 <button onChange={onSubmit}>확인</button>
-            </div>
+            </div>*/}
         </div>
     )
 }
