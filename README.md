@@ -1,67 +1,53 @@
 # ui-agent-locator
 
-Storybook Story를 만들지 않고 **실제 개발 중인 React/Vite 화면에서 UI를 직접 선택한 뒤, 정확한 JSX/TSX 소스 위치와 작업 요청을 Codex CLI 또는 Claude Code로 보내는 개발 도구**입니다.
+Storybook Story를 만들지 않고 **실제 React/Vite 개발 화면에서 UI를 직접 선택해 정확한 JSX/TSX 소스 위치와 작업 요청을 Codex CLI 또는 Claude Code로 보내는 도구**입니다.
 
-기존 Story AI Addon에서 기획했던 AI 전송, 멀티 선택, 작업 큐, 파일 Lock, Retry/Cancel/Delete, 캐시 초기화, CLI Adapter, Demo 옵션을 유지하면서 가장 큰 제약이었던 **“AI 작업을 보내려면 Story를 먼저 만들어야 한다”**는 전제를 제거하는 것이 목적입니다.
+기존 Story AI Addon에서 기획했던 선택/코멘트 기반 AI 전송, 멀티 선택, Queue, File Lock, Retry/Cancel/Delete, 캐시 초기화, CLI Adapter, Demo 옵션을 유지하면서 가장 큰 제약이었던 **“Story를 먼저 만들어야 한다”**는 전제를 제거합니다.
 
-## 핵심 변화
-
-기존:
+## 목표
 
 ```text
-Component 작성
-→ Story 작성
-→ Storybook 실행
-→ Story에서 선택/코멘트
-→ AI CLI 전송
+기존
+Component → Story 작성 → Storybook → 선택/코멘트 → AI
+
+현재
+실제 앱 → UI 선택 → Source Locator → Context Bundle
+       → Queue / Lock → Codex 또는 Claude Code → Vite HMR
 ```
 
-현재:
+Storybook은 필요하지 않습니다.
 
-```text
-실제 React/Vite 앱 실행
-→ Alt + Click으로 UI 선택
-→ JSX/TSX source 위치 확인
-→ 작업 요청 입력
-→ Local Bridge
-→ Queue / File Lock
-→ Codex CLI 또는 Claude Code
-→ 파일 수정
-→ Vite HMR로 즉시 확인
-```
+## 현재 구현된 기능
 
-**Storybook은 필요하지 않습니다.**
-
----
-
-## 포함 기능
-
-- Story 생성/Storybook 의존성 제거
-- Vite 개발 서버에 Inspector 자동 주입
-- React private Fiber API에 의존하지 않는 AST 기반 source metadata injection
-- React 19+를 고려한 구조
-- Hover source locator
-- `Alt + Click` 단일 선택
-- `Shift + Alt + Click` 멀티 선택
-- DOM → JSX/TSX 파일/라인/컬럼 추적
-- component/tag/text/role/test-id/source ancestry context 수집
-- 한 번의 Send = 하나의 AI Job
-- 여러 선택 대상을 하나의 Context Bundle로 전송
-- 복합 컴포넌트 ancestry context 지원
-- Codex CLI / Claude Code 선택
-- Local HTTP + WebSocket Bridge
-- 작업 Queue
-- 파일 단위 Lock
-- Lock 충돌 작업 `blocked` 처리
-- Retry / Cancel / Delete
-- 자동 Retry 횟수 설정
-- Context Cache reset API
-- 동시 실행 수 설정
-- 독립 Bridge CLI 실행
-- Demo quick prompt 옵션
-- Production build에서는 자동 비활성화 (`apply: serve`)
-
----
+- [x] Storybook/Story 생성 의존성 제거
+- [x] React/Vite 개발 화면에 Inspector 자동 주입
+- [x] AST 기반 JSX/TSX Source Metadata Injection
+- [x] React private Fiber API 비의존 기본 Locator
+- [x] `Alt + Click` 단일 선택
+- [x] `Shift + Alt + Click` 멀티 선택
+- [x] file / line / column / component / tag 추적
+- [x] text / role / test-id / source ancestry Context 수집
+- [x] 복합 컴포넌트 Context 지원
+- [x] 한 번의 Send = 하나의 AI Job
+- [x] 여러 선택 대상을 하나의 Context Bundle로 전송
+- [x] Codex CLI Adapter
+- [x] Claude Code Adapter
+- [x] Local HTTP Bridge
+- [x] WebSocket Job Event
+- [x] 작업 Queue
+- [x] 파일 단위 Lock
+- [x] Lock 충돌 Job `blocked` 처리
+- [x] Inspector 내부 Job Queue UI
+- [x] Lock 충돌 경고 표시
+- [x] blocked Job 자동 재평가/실행
+- [x] Retry / Cancel / Delete UI 및 API
+- [x] 자동 Retry 설정
+- [x] Context Cache reset API
+- [x] 동시 실행 수 설정
+- [x] 독립 Bridge CLI 실행
+- [x] Demo quick prompt 옵션
+- [x] production build 자동 비활성화 (`apply: serve`)
+- [x] GitHub Actions TypeScript build 검증
 
 ## Architecture
 
@@ -69,52 +55,35 @@ Component 작성
 ┌─────────────────────────────────────────────┐
 │ Live React / Vite Application              │
 │                                             │
-│ JSX/TSX                                    │
-│   ↓ Vite transform                         │
-│ AST Source Metadata Injection              │
-│   ↓                                        │
-│ Rendered DOM                               │
+│ JSX/TSX → Vite AST Transform               │
+│          ↓                                  │
 │ data-ui-agent-source="src/...:42:7"        │
 └───────────────────┬─────────────────────────┘
-                    │
-              Alt + Click
-        Shift + Alt + Click
-                    │
+                    │ Alt + Click
+                    │ Shift + Alt + Click
                     ▼
 ┌─────────────────────────────────────────────┐
 │ Browser Inspector                          │
-│ - hover highlight                          │
-│ - file / line / column                     │
-│ - component / tag                          │
-│ - text / role / test-id                    │
-│ - source ancestry                          │
-│ - multi selection                          │
-│ - prompt composer                          │
+│                                             │
+│ Source / Component / Text / Ancestry       │
+│ Multi Selection / Prompt Composer           │
+│ Job Queue / Retry / Cancel / Delete         │
+│ Lock Conflict Warning                       │
 └───────────────────┬─────────────────────────┘
                     │ POST /jobs
                     ▼
 ┌─────────────────────────────────────────────┐
 │ Local AI Bridge                            │
-│ - Job Queue                                │
-│ - File Lock                                │
-│ - Retry / Cancel / Delete                  │
-│ - Context Cache                            │
-│ - WebSocket Job Events                     │
+│ Queue / File Lock / Retry / Cache / Events │
 └──────────────┬────────────────┬─────────────┘
-               │                │
                ▼                ▼
-         Codex Adapter     Claude Adapter
-               │                │
-         codex exec          claude -p
+          codex exec        claude -p
                └───────┬────────┘
                        ▼
                   Repository
-                       │
                        ▼
                     Vite HMR
 ```
-
----
 
 ## Installation
 
@@ -122,18 +91,14 @@ Component 작성
 npm install -D ui-agent-locator
 ```
 
-Node.js 20+가 필요합니다. 사용할 AI CLI는 별도 설치/로그인되어 있어야 합니다.
+Node.js 20+가 필요하며 사용할 AI CLI가 설치/로그인되어 있어야 합니다.
 
 ```bash
 codex --version
 claude --version
 ```
 
----
-
 ## Vite 설정
-
-`vite.config.ts`
 
 ```ts
 import { defineConfig } from "vite";
@@ -145,70 +110,39 @@ export default defineConfig({
     react(),
     uiAgentLocator({
       provider: "codex",
-      demo: true
+      demo: true,
+      concurrency: 1,
+      maxRetries: 1
     })
   ]
 });
 ```
 
-이후 기존 앱처럼 실행합니다.
+`npm run dev` 실행 시 기본적으로 Local Bridge가 `127.0.0.1:4317`에서 함께 실행됩니다.
 
-```bash
-npm run dev
-```
+## Selection
 
-Vite 개발 서버와 함께 Local Bridge가 기본 `127.0.0.1:4317`에서 실행됩니다.
-
-플러그인은 `apply: "serve"`이므로 production build에는 Inspector/source metadata가 포함되지 않습니다.
-
----
-
-## UI 선택
-
-### 단일 선택
+단일 선택:
 
 ```text
 Alt + Click
 ```
 
-기존 선택을 비우고 현재 요소를 선택합니다.
-
-### 멀티 선택
+멀티 선택:
 
 ```text
 Shift + Alt + Click
 ```
 
-기존 선택을 유지하면서 요소를 추가합니다.
-
-예:
-
-```text
-Header.tsx:31
-SearchBar.tsx:74
-FilterButton.tsx:22
-Table.tsx:118
-```
-
-요청:
-
-```text
-선택한 컴포넌트들의 spacing을 동일한 디자인 토큰으로 정리해줘.
-```
-
-이 경우 4개의 Job이 아니라:
+예를 들어 네 개의 UI를 선택하고 한 번 전송하면:
 
 ```text
 4 selections + 1 prompt = 1 Context Bundle = 1 Job
 ```
 
-으로 처리합니다.
-
----
+입니다. 즉 기존 Story AI Addon에서 여러 코멘트를 일괄 전송하는 기획과 동일하게 **사용자의 한 번의 Send가 Queue 작업 단위**입니다.
 
 ## Source Locator 방식
-
-React 내부의 private Fiber field만 이용해 source를 찾지 않고 Vite transform 단계에서 JSX AST에 source metadata를 삽입합니다.
 
 원본:
 
@@ -218,71 +152,21 @@ export function UserCard() {
 }
 ```
 
-개발 서버 transform 결과 개념:
+개발 모드에서는 실제 DOM이 되는 intrinsic JSX node에 다음과 같은 metadata가 삽입됩니다.
 
 ```tsx
-export function UserCard() {
-  return (
-    <section
-      data-ui-agent-source="src/components/UserCard.tsx:2:10"
-      data-ui-agent-component="UserCard"
-      data-ui-agent-tag="section"
-      className="card"
-    >
-      ...
-    </section>
-  );
-}
+<section
+  data-ui-agent-source="src/components/UserCard.tsx:2:10"
+  data-ui-agent-component="UserCard"
+  data-ui-agent-tag="section"
+/>
 ```
 
-Custom Component 호출부에 무조건 attribute를 넣지 않고 **실제로 DOM이 되는 intrinsic JSX node에 source metadata를 삽입**합니다. Custom Component가 임의 props를 DOM까지 전달하지 않는 문제를 피하기 위한 선택입니다.
+Custom Component가 임의 props를 DOM으로 전달하지 않는 문제를 피하기 위해 실제 DOM JSX를 기본 Locator anchor로 사용합니다.
 
----
+## Composite Component Context
 
-## AI Job Context
-
-브라우저가 Bridge에 전달하는 구조:
-
-```json
-{
-  "provider": "codex",
-  "prompt": "모바일에서 레이아웃이 깨지는 문제를 수정해줘.",
-  "selections": [
-    {
-      "source": {
-        "file": "src/components/UserCard.tsx",
-        "line": 83,
-        "column": 12,
-        "component": "UserCard",
-        "tag": "section"
-      },
-      "text": "홍길동 프로필",
-      "ancestry": []
-    }
-  ]
-}
-```
-
-CLI에는 source 위치와 component context가 포함된 작업 Prompt로 변환됩니다.
-
-```text
-The user selected these live UI source locations:
-
-1. src/components/UserCard.tsx:83:12
-   component: UserCard
-   tag: section
-
-Task:
-모바일에서 레이아웃이 깨지는 문제를 수정해줘.
-
-Inspect related files as needed and make the requested changes.
-```
-
----
-
-## 복합 컴포넌트
-
-복합 컴포넌트의 내부 DOM을 선택하면 선택 위치만 보내는 것이 아니라 상위 DOM에 존재하는 source metadata를 따라 ancestry context도 함께 수집합니다.
+선택한 요소뿐 아니라 상위 source ancestry도 함께 수집합니다.
 
 ```text
 App
@@ -292,19 +176,11 @@ App
 > img (selected)
 ```
 
-AI는 선택 source에서 시작해서 관련 부모/자식 파일을 추가 탐색할 수 있습니다.
+따라서 AI는 선택 source에서 시작해 연관 부모/자식 컴포넌트를 탐색할 수 있습니다.
 
----
+## Job Queue / File Lock
 
-## Queue 정책
-
-기존 Story AI Addon 기획을 유지합니다.
-
-### 1 Send = 1 Job
-
-여러 Selection/코멘트 성격의 Context가 있어도 사용자가 한 번 Send한 요청은 하나의 작업 단위입니다.
-
-### 상태
+Job 상태:
 
 ```text
 queued
@@ -315,187 +191,38 @@ failed
 cancelled
 ```
 
-### 동시 실행
-
-기본값:
+기본 Lock 기준은 Bridge 하나가 하나의 repository/cwd를 담당한다는 전제에서 `filepath`입니다.
 
 ```text
-concurrency = 1
+Job #31 → src/components/UserCard.tsx → RUNNING
+Job #32 → src/components/UserCard.tsx → BLOCKED
 ```
 
-파일이 겹치지 않는 Job을 병렬 처리하려면:
+Job #31이 끝나면 #32는 자동으로 재평가되어 실행됩니다. Inspector Queue에서 blocked 상태와 충돌 경고를 확인하고 Cancel/Delete할 수 있습니다.
+
+파일이 겹치지 않는 작업은 다음처럼 병렬 실행할 수 있습니다.
 
 ```ts
-uiAgentLocator({
-  concurrency: 3
-});
+uiAgentLocator({ concurrency: 3 });
 ```
-
----
-
-## File Lock
-
-Lock 기준은 기본적으로:
-
-```text
-repository(cwd) + filepath
-```
-
-입니다.
-
-예:
-
-```text
-Job #31
-src/components/UserCard.tsx
-RUNNING
-```
-
-중 같은 파일을 대상으로 Job #32가 들어오면:
-
-```text
-Job #32
-BLOCKED
-```
-
-가 되고 Job #31 종료 후 자동 재평가됩니다.
-
-이 구조는 기존 Addon에서 기획했던 **백그라운드에서 Lock이 걸린 Job이 실행되려 할 때 충돌을 감지하고 대기/재시도하는 기능**의 기반입니다.
-
----
 
 ## Retry / Cancel / Delete
 
-### Retry
-
 ```http
-POST /jobs/:id/retry
-```
-
-### Cancel
-
-```http
-POST /jobs/:id/cancel
-```
-
-실행 중 CLI process에 `SIGTERM`을 보내고 queued/blocked Job이면 대기열에서 제거합니다.
-
-### Delete
-
-```http
+POST   /jobs/:id/retry
+POST   /jobs/:id/cancel
 DELETE /jobs/:id
 ```
 
-실행 중인 Job은 삭제하지 않습니다.
+Inspector Queue UI에서도 동일한 작업을 수행할 수 있습니다.
 
-### 자동 Retry
-
-```ts
-uiAgentLocator({
-  maxRetries: 2
-});
-```
-
----
-
-## Cache reset
-
-기존 Addon 기획에 있던 캐시 초기화 인터페이스도 유지합니다.
-
-```http
-POST /cache/reset
-```
-
-현재는 확장 포인트이며 이후 다음 캐싱에 사용할 수 있습니다.
-
-- file summary
-- component dependency graph
-- previous inspection result
-- source map
-- repository index
-- prompt context
-
----
-
-## CLI Adapters
-
-현재 기본 Provider:
-
-```text
-Codex
-Claude Code
-```
-
-기본 실행:
-
-```bash
-codex exec "<prompt>"
-```
-
-```bash
-claude -p "<prompt>"
-```
-
-Adapter 계층을 분리했기 때문에 이후 아래를 추가할 수 있습니다.
-
-```text
-Gemini CLI
-Aider
-OpenCode
-MCP Agent
-사내 Agent CLI
-```
-
----
-
-## Separate Bridge mode
-
-Vite process와 Bridge를 분리하려면:
+자동 Retry:
 
 ```ts
-uiAgentLocator({
-  startBridge: false,
-  bridgeUrl: "http://127.0.0.1:4317"
-});
+uiAgentLocator({ maxRetries: 2 });
 ```
 
-별도 실행:
-
-```bash
-npx ui-agent-locator --cwd ./my-project
-```
-
-옵션:
-
-```bash
-ui-agent-locator \
-  --host 127.0.0.1 \
-  --port 4317 \
-  --cwd . \
-  --concurrency 2 \
-  --retries 1
-```
-
----
-
-## Demo 옵션
-
-기존 기획에서 정의한 Demo는 별도 제품 로직이 아니라 **기능 확인용 샘플링 UI**입니다.
-
-```ts
-uiAgentLocator({
-  demo: true
-});
-```
-
-Inspector에 quick prompt가 추가됩니다.
-
-```text
-Fix layout
-Refactor
-```
-
----
+Cancel은 실행 중 CLI process에 `SIGTERM`을 전송합니다. 실행 중 Job은 직접 Delete하지 않습니다.
 
 ## Bridge API
 
@@ -510,100 +237,75 @@ DELETE /jobs/:id
 POST   /cache/reset
 ```
 
-실시간 Job event:
+실시간 Job Event:
 
 ```text
 ws://127.0.0.1:4317/events
 ```
 
----
+## CLI Adapter
+
+기본 Provider:
+
+```text
+Codex       → codex exec "<prompt>"
+Claude Code → claude -p "<prompt>"
+```
+
+Adapter 계층을 분리했기 때문에 이후 Gemini CLI, Aider, OpenCode, MCP Agent, 사내 Agent CLI 등을 추가할 수 있습니다.
+
+## Separate Bridge
+
+Vite 프로세스와 Bridge를 분리하려면:
+
+```ts
+uiAgentLocator({
+  startBridge: false,
+  bridgeUrl: "http://127.0.0.1:4317"
+});
+```
+
+```bash
+npx ui-agent-locator --cwd ./my-project
+```
+
+## Demo
+
+```ts
+uiAgentLocator({ demo: true });
+```
+
+기존 Story AI Addon 기획대로 Demo는 제품 로직이 아니라 기능 확인용 quick prompt를 제공하는 옵션입니다.
 
 ## Security
 
-Bridge 기본 host는 반드시 로컬인:
+Bridge 기본 bind 주소는 `127.0.0.1`입니다. AI CLI가 실제 repository 파일을 수정하므로 외부 네트워크 공개를 전제로 하지 않습니다.
+
+## 다음 확장 대상
+
+- [ ] CLI stdout/stderr 실시간 Streaming
+- [ ] AI 변경 Diff Preview
+- [ ] Apply / Reject
+- [ ] Undo Last AI Job
+- [ ] Screenshot Crop Context
+- [ ] Console Error Context
+- [ ] Network Error Context
+- [ ] React Component Tree 보조 추적
+- [ ] Source Map fallback locator
+- [ ] Chrome Extension mode
+- [ ] VS Code / JetBrains Extension
+- [ ] Vue / Svelte / Next.js 지원
+- [ ] MCP Transport
+- [ ] Git Worktree/Branch per Job
+- [ ] Agent Orchestration
+
+## Product Definition
 
 ```text
-127.0.0.1
-```
-
-을 사용합니다.
-
-AI CLI가 실제 repository 파일을 수정할 수 있으므로 Bridge를 외부 네트워크에 공개하는 것을 권장하지 않습니다.
-
----
-
-## 현재 구현 범위
-
-### Phase 1
-
-- [x] Storybook dependency 제거
-- [x] 일반 React/Vite 개발 화면 대상
-- [x] Vite dev plugin
-- [x] AST source metadata injection
-- [x] hover locator
-- [x] single selection
-- [x] multi selection
-- [x] component/source context
-- [x] ancestry context
-- [x] prompt composer
-- [x] Codex adapter
-- [x] Claude Code adapter
-- [x] Queue
-- [x] File Lock
-- [x] blocked job
-- [x] Retry
-- [x] Cancel
-- [x] Delete
-- [x] automatic Retry
-- [x] Context Cache reset endpoint
-- [x] WebSocket job events
-- [x] Demo option
-
-### Phase 2
-
-- [ ] Inspector 내부 Queue drawer
-- [ ] Lock 충돌 경고 UI
-- [ ] `Queue anyway / Retry later / Cancel` UX
-- [ ] CLI stdout/stderr 실시간 streaming
-- [ ] AI 변경 Diff preview
-- [ ] Apply / Reject workflow
-- [ ] Undo last AI job
-- [ ] 선택 영역 Screenshot context
-- [ ] Console error context
-- [ ] Network error context
-- [ ] 브라우저에서 Job별 로그 확인
-- [ ] React component tree 보조 추적
-- [ ] sourcemap fallback locator
-
-### Phase 3
-
-- [ ] Chrome extension mode
-- [ ] VS Code extension
-- [ ] JetBrains plugin
-- [ ] Vue
-- [ ] Svelte
-- [ ] Next.js
-- [ ] Remix
-- [ ] MCP transport
-- [ ] Git worktree per Job
-- [ ] Git branch per Job
-- [ ] Agent orchestration
-
----
-
-## 기존 Story AI Addon과의 관계
-
-기존 제품 개념:
-
-```text
-Story AI Review
+기존 Story AI Addon
 Story / Comment → AI
-```
 
-현재 제품:
-
-```text
-UI Agent Locator
+ui-agent-locator
 Live Application UI
 → Source Locator
 → Context Bundle
@@ -611,20 +313,6 @@ Live Application UI
 → AI Coding CLI
 ```
 
-즉 기존 기획을 버린 것이 아니라 **Storybook에 묶여 있던 AI 작업 오케스트레이션 레이어를 일반 개발 화면으로 확장한 버전**입니다.
+기존 기획을 폐기한 것이 아니라 **Storybook에 묶여 있던 AI 작업 오케스트레이션을 실제 개발 화면으로 확장한 버전**입니다.
 
-## Product definition
-
-`ui-agent-locator`는 Storybook addon이 아닙니다.
-
-```text
-UI inspection
-+ source locator
-+ AI task composer
-+ local agent bridge
-+ job orchestration
-```
-
-을 묶은 **Live Application → Coding Agent Bridge**입니다.
-
-> 화면에서 문제를 발견한 개발자가 Story를 만들거나 대상 파일을 직접 찾지 않고, 문제 UI를 클릭해서 바로 AI coding agent에게 작업을 넘긴다.
+> 화면에서 문제를 발견한 개발자가 Story를 만들거나 대상 파일을 직접 찾지 않고, 문제 UI를 클릭해 바로 AI coding agent에게 작업을 넘긴다.
