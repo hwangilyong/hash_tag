@@ -19,12 +19,24 @@ export interface SourceLocation {
   tag?: string;
 }
 
+export interface ElementRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface SelectionContext {
   id: string;
   source: SourceLocation;
+  /** User-facing request attached to this exact visual target. */
+  request?: string;
   text?: string;
   role?: string;
   testId?: string;
+  selector?: string;
+  rect?: ElementRect;
+  attributes?: Record<string, string>;
   ancestry: SourceLocation[];
 }
 
