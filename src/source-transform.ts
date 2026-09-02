@@ -60,8 +60,9 @@ export interface TransformOptions {
 }
 
 /**
- * Inject source metadata into intrinsic DOM JSX nodes only.
- * This avoids relying on React private Fiber fields and keeps React 19+ support viable.
+ * Inject repo-relative source metadata into intrinsic DOM JSX nodes only.
+ * The local Bridge later converts this display path into a canonical absolute path
+ * before locking files or invoking an AI CLI.
  */
 export function injectSourceMetadata(
   code: string,
@@ -71,10 +72,11 @@ export function injectSourceMetadata(
   const sourceAttribute = options.sourceAttribute ?? "data-ui-agent-source";
   const componentAttribute =
     options.componentAttribute ?? "data-ui-agent-component";
+  const cleanId = id.replace(/[?#].*$/, "");
 
   const ast = parse(code, {
     sourceType: "module",
-    sourceFilename: id,
+    sourceFilename: cleanId,
     plugins: ["jsx", "typescript", "decorators-legacy"]
   });
 
@@ -101,7 +103,7 @@ export function injectSourceMetadata(
       if (existing.has(sourceAttribute)) return;
 
       const loc = opening.name.loc.start;
-      const relativeFile = id.replace(/^.*?[\\/]src[\\/]/, "src/");
+      const relativeFile = cleanId.replace(/^.*?[\\/]src[\\/]/, "src/");
       const component = getComponentName(path);
       const sourceValue = `${relativeFile}:${loc.line}:${loc.column + 1}`;
 
