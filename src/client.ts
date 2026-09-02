@@ -73,18 +73,20 @@ function selectorFor(el: Element): string {
       break;
     }
 
-    const parent = cursor.parentElement;
-    if (parent) {
-      const siblings = Array.from(parent.children).filter(
-        (candidate) => candidate.tagName === cursor!.tagName
+    const currentTag = cursor.tagName;
+    const parentElement: Element | null = cursor.parentElement;
+    if (parentElement) {
+      const siblings: Element[] = Array.from(parentElement.children);
+      const sameTag = siblings.filter(
+        (candidate: Element) => candidate.tagName === currentTag
       );
-      if (siblings.length > 1) {
-        part += `:nth-of-type(${siblings.indexOf(cursor) + 1})`;
+      if (sameTag.length > 1) {
+        part += `:nth-of-type(${sameTag.indexOf(cursor) + 1})`;
       }
     }
 
     parts.unshift(part);
-    cursor = parent;
+    cursor = parentElement;
   }
 
   return parts.join(" > ");
