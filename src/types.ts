@@ -9,7 +9,10 @@ export type JobStatus =
   | "cancelled";
 
 export interface SourceLocation {
+  /** Absolute path after Bridge normalization. Browser payload may initially contain a repo-relative path. */
   file: string;
+  /** Stable repo-relative display path preserved after Bridge normalization. */
+  relativeFile?: string;
   line: number;
   column: number;
   component?: string;
