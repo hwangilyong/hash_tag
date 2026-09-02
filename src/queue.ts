@@ -1,7 +1,8 @@
 import { EventEmitter } from "node:events";
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { executeWithAdapter } from "./adapters.js";
-import type { AiJob, AiJobRequest, BridgeOptions } from "./types.js";
+import { normalizeSourceLocation, resolveProjectRoot } from "./paths.js";
+import type { AiJob, AiJobRequest, BridgeOptions, SelectionContext } from "./types.js";
 
 export class JobQueue extends EventEmitter {
   private jobs = new Map<string, AiJob>();
@@ -10,15 +11,30 @@ export class JobQueue extends EventEmitter {
   private processes = new Map<string, ChildProcessWithoutNullStreams>();
   private contextCache = new Map<string, unknown>();
   private active = 0;
+  private readonly projectRoot: string;
 
   constructor(private options: BridgeOptions = {}) {
     super();
+    this.projectRoot = resolveProjectRoot(options.cwd);
+    this.options.cwd = this.projectRoot;
   }
 
   enqueue(request: AiJobRequest): AiJob {
-    const lockedFiles = [...new Set(request.selections.map((s) => s.source.file))];
+    const selections: SelectionContext[] = request.selections.map((selection) => ({
+      ...selection,
+      source: normalizeSourceLocation(selection.source, this.projectRoot),
+      ancestry: selection.ancestry.map((location) =>
+        normalizeSourceLocation(location, this.projectRoot)
+      )
+    }));
+    const lockedFiles = [...new Set(selections.map((s) => s.source.file))];
     const job: AiJob = {
       ...request,
+      selections,
+      metadata: {
+        ...request.metadata,
+        projectRoot: this.projectRoot
+      },
       id: crypto.randomUUID(),
       status: "queued",
       attempts: 0,
